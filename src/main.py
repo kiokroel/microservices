@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.core.config import settings
 from src.core.database import engine
-from src.routes import articles, comments, users
+from src.routes import router
 
 # Инициализировать приложение
 app = FastAPI(
@@ -28,9 +28,7 @@ app.add_middleware(
 
 
 # Роуты
-app.include_router(users.router)
-app.include_router(articles.router)
-app.include_router(comments.router)
+app.include_router(router)
 
 
 @app.get("/health")
