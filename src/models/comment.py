@@ -13,7 +13,9 @@ class Comment(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     body = Column(Text, nullable=False)
     article_id = Column(
-        UUID(as_uuid=True), ForeignKey("articles.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("articles.id", ondelete="CASCADE"),
+        nullable=False,
     )
     author_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False

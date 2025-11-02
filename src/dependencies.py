@@ -27,7 +27,8 @@ async def get_current_user(
         user_id = UUID(user_id_str)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный формат ID пользователя"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверный формат ID пользователя",
         )
 
     user_repo = UserRepository(db)

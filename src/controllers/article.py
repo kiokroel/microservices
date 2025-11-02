@@ -5,8 +5,7 @@ from slugify import slugify
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.repositories.article import ArticleRepository
-from src.schemas.article import (ArticleBase, ArticleCreate,
-                                ArticleResponse,
+from src.schemas.article import (ArticleBase, ArticleCreate, ArticleResponse,
                                  ArticleUpdate)
 
 
@@ -22,6 +21,7 @@ class ArticleController:
             slug = f"{base_slug}-{counter}"
             counter += 1
         return slug
+
     async def create_article(self, article_in: ArticleBase, author_id: UUID):
         slug = await self._generate_slug(article_in.title)
         article_data = article_in.model_dump()
@@ -32,7 +32,9 @@ class ArticleController:
         )
         article = await self.article_repo.create(ArticleCreate(**article_data))
         article_resp_data = article.__dict__
-        article_resp_data["tag_list"] = article.tag_list.split(",") if article.tag_list else []
+        article_resp_data["tag_list"] = (
+            article.tag_list.split(",") if article.tag_list else []
+        )
         article_response = ArticleResponse.model_validate(article_resp_data)
         return article_response
 
@@ -48,7 +50,7 @@ class ArticleController:
                 tag_list=article.tag_list.split(",") if article.tag_list else [],
                 created_at=article.created_at,
                 updated_at=article.updated_at,
-                author_id=article.author_id
+                author_id=article.author_id,
             )
             for article in articles
         ]
@@ -60,11 +62,15 @@ class ArticleController:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Статья не найдена"
             )
         article_resp_data = article.__dict__
-        article_resp_data["tag_list"] = article.tag_list.split(",") if article.tag_list else []
+        article_resp_data["tag_list"] = (
+            article.tag_list.split(",") if article.tag_list else []
+        )
         article_response = ArticleResponse.model_validate(article_resp_data)
         return article_response
 
-    async def update_article(self, slug: str, article_update: ArticleUpdate, author_id: UUID):
+    async def update_article(
+        self, slug: str, article_update: ArticleUpdate, author_id: UUID
+    ):
         article = await self.article_repo.get_by_slug(slug)
         if not article:
             raise HTTPException(
@@ -86,7 +92,9 @@ class ArticleController:
 
         updated_article = await self.article_repo.update(article, article_update)
         article_resp_data = updated_article.__dict__
-        article_resp_data["tag_list"] = updated_article.tag_list.split(",") if updated_article.tag_list else []
+        article_resp_data["tag_list"] = (
+            updated_article.tag_list.split(",") if updated_article.tag_list else []
+        )
         article_response = ArticleResponse.model_validate(article_resp_data)
         return article_response
 

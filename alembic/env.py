@@ -1,11 +1,12 @@
 import asyncio
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+
+from sqlalchemy import engine_from_config, pool
 from sqlalchemy.ext.asyncio import AsyncEngine
+
 from alembic import context
-from src.core.database import Base
 from src.core.config import settings
+from src.core.database import Base
 from src.models import *
 
 # this is the Alembic Config object, which provides
@@ -31,6 +32,7 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 
 
 print(settings.database_url)
+
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.

@@ -35,7 +35,9 @@ class CommentController:
             )
         return await self.comment_repo.get_by_article_id(article.id, skip, limit)
 
-    async def delete_comment(self, slug: str, comment_id: UUID, author_id: UUID) -> bool:
+    async def delete_comment(
+        self, slug: str, comment_id: UUID, author_id: UUID
+    ) -> bool:
         article = await self.article_repo.get_by_slug(slug)
         if not article:
             raise HTTPException(

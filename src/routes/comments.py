@@ -8,8 +8,7 @@ from src.controllers.comment import CommentController
 from src.core.database import get_db
 from src.dependencies import get_current_user
 from src.models.user import User
-from src.schemas.comment import (CommentBase,
-                                 CommentResponse)
+from src.schemas.comment import CommentBase, CommentResponse
 
 router = APIRouter(prefix="/api/articles", tags=["comments"])
 

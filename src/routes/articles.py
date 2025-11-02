@@ -7,9 +7,7 @@ from src.controllers.article import ArticleController
 from src.core.database import get_db
 from src.dependencies import get_current_user
 from src.models.user import User
-from src.schemas.article import (ArticleBase,
-                                 ArticleResponse,
-                                 ArticleUpdate)
+from src.schemas.article import ArticleBase, ArticleResponse, ArticleUpdate
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
 

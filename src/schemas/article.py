@@ -19,6 +19,7 @@ class ArticleBase(BaseModel):
 
 class ArticleCreate(ArticleBase):
     """Схема для создания статьи"""
+
     slug: str
     author_id: UUID
     tag_list: Optional[str] = None
@@ -43,4 +44,3 @@ class ArticleResponse(ArticleBase):
     author_id: Optional[UUID]
     created_at: datetime
     updated_at: Optional[datetime]
-

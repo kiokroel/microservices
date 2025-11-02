@@ -33,7 +33,9 @@ class UserController:
         return user
 
     async def login(self, credentials: UserLogin):
-        user = await self.user_repo.authenticate(credentials.email, credentials.password)
+        user = await self.user_repo.authenticate(
+            credentials.email, credentials.password
+        )
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

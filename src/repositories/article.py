@@ -16,7 +16,9 @@ class ArticleRepository(BaseRepository[Article, ArticleCreate, ArticleUpdate]):
     def __init__(self, db: AsyncSession):
         super().__init__(db, Article)
 
-    async def get_by_slug(self, slug: str, load_author: bool = False, load_comments: bool = False) -> Optional[Article]:
+    async def get_by_slug(
+        self, slug: str, load_author: bool = False, load_comments: bool = False
+    ) -> Optional[Article]:
         """Получить статью по slug"""
         stmt = select(Article).where(Article.slug == slug)
         if load_author:
@@ -39,7 +41,9 @@ class ArticleRepository(BaseRepository[Article, ArticleCreate, ArticleUpdate]):
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
-    async def check_slug_exists(self, slug: str, exclude_id: Optional[UUID] = None) -> bool:
+    async def check_slug_exists(
+        self, slug: str, exclude_id: Optional[UUID] = None
+    ) -> bool:
         """Проверить, существует ли slug"""
         stmt = select(Article).where(Article.slug == slug)
         if exclude_id:

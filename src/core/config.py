@@ -7,7 +7,6 @@ base_path = Path(__file__).resolve().parent.parent.parent
 env_file_path = str(base_path / ".env")
 
 
-
 class DatabaseSettings(BaseSettings):
     """Database configuration"""
 

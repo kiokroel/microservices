@@ -13,7 +13,7 @@ class CommentBase(BaseModel):
 
 class CommentCreate(CommentBase):
     """Схема для создания комментария"""
-    
+
     article_id: UUID
     author_id: UUID
 
