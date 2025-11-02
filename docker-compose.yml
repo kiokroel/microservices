@@ -17,6 +17,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles:
+      - dev
 
   app:
     build: .
@@ -24,9 +26,6 @@ services:
       - .env
     ports:
       - "127.0.0.1:8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
     volumes:
       - ./src:/app/src
     restart: unless-stopped
