@@ -30,7 +30,6 @@ services:
     volumes:
       - ./src:/app/src
     restart: unless-stopped
-    command: poetry run python -m src.main
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s

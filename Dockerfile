@@ -25,4 +25,4 @@ RUN mkdir -p /app/data
 
 EXPOSE 8000
 
-CMD ["poetry", "run", "python", "-m", "src.main"]
+CMD ["sh", "-c", "poetry run alembic upgrade head && poetry run python -m src.main"]
