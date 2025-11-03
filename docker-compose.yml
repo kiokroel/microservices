@@ -8,6 +8,8 @@ services:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     volumes:
       - db_main_data:/var/lib/postgresql/data
+    ports:
+    - "5433:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${BACKEND_POSTGRES_USER}"]
@@ -24,6 +26,8 @@ services:
       - users_api/.env
     environment:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+    - "5434:5432"
     volumes:
       - db_users_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -39,6 +43,7 @@ services:
     build: ./backend
     env_file:
       - .env
+      - backend/.env
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -50,6 +55,7 @@ services:
     build: ./users_api
     env_file:
       - .env
+      - users_api/.env
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
