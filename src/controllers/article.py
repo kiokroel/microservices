@@ -85,7 +85,7 @@ class ArticleController:
 
         if article_update.title:
             new_slug = await self._generate_slug(article_update.title, article.id)
-            article_update.slug = new_slug  # type: ignore
+            article.slug = new_slug  # type: ignore
 
         if article_update.tag_list is not None:
             article_update.tag_list = ",".join(article_update.tag_list)  # type: ignore
