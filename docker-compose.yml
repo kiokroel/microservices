@@ -6,8 +6,6 @@ services:
       - backend/.env
     environment:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
-    ports:
-      - "127.0.0.1:${BACKEND_POSTGRES_PORT}:5432"
     volumes:
       - db_main_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -28,8 +26,6 @@ services:
       - users_api/.env
     environment:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
-    ports:
-      - "127.0.0.1:${USERS_POSTGRES_PORT}:5432"
     volumes:
       - db_users_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -47,7 +43,6 @@ services:
     build: ./backend
     env_file:
       - .env
-      - backend/.env
     volumes:
       - ./backend/src:/app/src
     restart: unless-stopped
@@ -63,7 +58,6 @@ services:
     build: ./users_api
     env_file:
       - .env
-      - users_api/.env
     volumes:
       - ./users_api/src:/app/src
     restart: unless-stopped
