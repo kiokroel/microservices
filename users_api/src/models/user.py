@@ -2,7 +2,6 @@ import uuid
 
 from sqlalchemy import Column, DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
 
 from src.core.database import Base
 
@@ -19,10 +18,3 @@ class User(Base):
     image_url = Column(String(500), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    articles = relationship(
-        "Article", back_populates="author", cascade="all, delete-orphan"
-    )
-    comments = relationship(
-        "Comment", back_populates="author", cascade="all, delete-orphan"
-    )

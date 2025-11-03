@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir poetry
 
 RUN poetry config virtualenvs.create false
 
-COPY . /app/users_api
+COPY . .
 
 RUN poetry install --no-interaction --no-ansi
 
