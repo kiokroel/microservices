@@ -17,13 +17,12 @@ class Article(Base):
     description = Column(String(500), nullable=False)
     body = Column(Text, nullable=False)
     author_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True), nullable=False
     )
     tag_list = Column(String(500), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    author = relationship("User", back_populates="articles")
     comments = relationship(
         "Comment", back_populates="article", cascade="all, delete-orphan"
     )
