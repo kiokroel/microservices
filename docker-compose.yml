@@ -1,40 +1,97 @@
-version: "3.8"
-
 services:
-  postgres:
+  db_main:
     image: postgres:15-alpine
     env_file:
       - .env
+      - backend/.env
     environment:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${BACKEND_POSTGRES_PORT}:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - db_main_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${BACKEND_POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
     profiles:
       - dev
-
-  app:
-    build: .
+    networks:
+      - internal
+    
+  db_users:
+    image: postgres:15-alpine
     env_file:
       - .env
+      - users_api/.env
+    environment:
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:${USERS_POSTGRES_PORT}:5432"
     volumes:
-      - ./src:/app/src
+      - db_users_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USERS_POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - dev
+    networks:
+      - internal
+
+  backend:
+    build: ./backend
+    env_file:
+      - .env
+      - backend/.env
+    volumes:
+      - ./backend/src:/app/src
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - internal
+
+  users-api:
+    build: ./users_api
+    env_file:
+      - .env
+      - users_api/.env
+    volumes:
+      - ./users_api/src:/app/src
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  api-gateway:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - users-api
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
 
 volumes:
-  pgdata:
-    driver: local
+  db_main_data:
+  db_users_data:

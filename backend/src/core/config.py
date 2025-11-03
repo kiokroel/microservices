@@ -15,6 +15,7 @@ class DatabaseSettings(BaseSettings):
     postgres_user: str = "postgres"
     postgres_password: str = "postgres"
     postgres_address: str = "postgres"
+    postgres_port: int = 5432
     
     postgres_db: str = "blog_db"
     db_pool_size: int = 10
@@ -28,7 +29,7 @@ class DatabaseSettings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_address}:5432/{self.postgres_db}"
+        return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_address}:{self.postgres_port}/{self.postgres_db}"
 
 
 class JWTSettings(BaseSettings):
@@ -77,6 +78,7 @@ class Settings(BaseSettings):
         return self.database_settings.database_url
 
     model_config = SettingsConfigDict(
+        prefix="BACKEND_",
         extra="ignore",
         env_file=env_file_path,
         env_file_encoding="utf-8",
@@ -84,3 +86,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+if __name__ == "__main__":
+    print(settings.model_dump())
