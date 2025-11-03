@@ -1,41 +1,33 @@
-from uuid import UUID
-
+import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.core.database import get_db
-from src.core.security import security_service
-from src.repositories.user import UserRepository
 
 security = HTTPBearer()
 
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db),
 ):
-    """Получить текущего аутентифицированного пользователя"""
+    """Получить текущего аутентифицированного пользователя через users_api"""
     token = credentials.credentials
-    user_id_str = security_service.decode_token(token)
-    if not user_id_str:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный токен"
-        )
-
+    
     try:
-        user_id = UUID(user_id_str)
-    except ValueError:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "http://users-api:8000/api/users/me",
+                headers={"Authorization": f"Bearer {token}"}
+            )
+        
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, 
+                detail="Неверный токен или пользователь не найден"
+            )
+        
+        return resp.json()
+    except httpx.RequestError as e:
+        print(e)
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный формат ID пользователя",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Сервис аутентификации недоступен"
         )
-
-    user_repo = UserRepository(db)
-    user = await user_repo.get(user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден"
-        )
-
-    return user

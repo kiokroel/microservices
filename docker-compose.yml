@@ -9,16 +9,18 @@ services:
     volumes:
       - db_main_data:/var/lib/postgresql/data
     ports:
-    - "5433:5432"
+      - "5433:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${BACKEND_POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
     profiles:
       - dev
-    
+
   db_users:
     image: postgres:15-alpine
     env_file:
@@ -27,7 +29,7 @@ services:
     environment:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     ports:
-    - "5434:5432"
+      - "5434:5432"
     volumes:
       - db_users_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -36,6 +38,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
     profiles:
       - dev
 
@@ -50,6 +54,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   users-api:
     build: ./users_api
@@ -62,6 +68,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   api-gateway:
     image: nginx:latest
@@ -73,7 +81,13 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    networks:
+      - app-network
 
 volumes:
   db_main_data:
   db_users_data:
+
+networks:
+  app-network:
+    driver: bridge
