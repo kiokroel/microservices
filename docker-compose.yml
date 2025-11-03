@@ -16,8 +16,6 @@ services:
       retries: 5
     profiles:
       - dev
-    networks:
-      - internal
     
   db_users:
     image: postgres:15-alpine
@@ -36,38 +34,28 @@ services:
       retries: 5
     profiles:
       - dev
-    networks:
-      - internal
 
   backend:
     build: ./backend
     env_file:
       - .env
-    volumes:
-      - ./backend/src:/app/src
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - internal
 
   users-api:
     build: ./users_api
     env_file:
       - .env
-    volumes:
-      - ./users_api/src:/app/src
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - internal
 
   api-gateway:
     image: nginx:latest
@@ -79,12 +67,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    networks:
-      - internal
-
-networks:
-  internal:
-    driver: bridge
 
 volumes:
   db_main_data:
