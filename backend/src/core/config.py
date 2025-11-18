@@ -71,11 +71,28 @@ class QueueSettings(BaseSettings):
     )
 
 
+class JWTSettings(BaseSettings):
+    """JWT configuration"""
+
+    secret_key: str = ""
+    algorithm: str = "HS256"
+    expiration_hours: int = 24
+
+    model_config = SettingsConfigDict(
+        env_file=env_file_path,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+        env_prefix="USERS_JWT_",
+    )
+
+
 class Settings(BaseSettings):
     env: str = "development"
     database_settings: DatabaseSettings = DatabaseSettings()
     api_settings: APISettings = APISettings()
     queue_settings: QueueSettings = QueueSettings()
+    jwt_settings: JWTSettings = JWTSettings()
 
 
     @property
