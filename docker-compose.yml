@@ -1,4 +1,24 @@
 services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  push-notificator:
+    image: ghcr.io/ayusavin/push-notification-playground:1.0.0
+    ports:
+      - "8010:8000"
+    networks:
+      - app-network
+
   db_main:
     image: postgres:15-alpine
     env_file:
@@ -56,6 +76,9 @@ services:
       retries: 5
     networks:
       - app-network
+    depends_on:
+      - db_main
+      - rabbitmq
 
   users-api:
     build: ./users_api
@@ -68,6 +91,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
+
+  worker:
+    build: ./worker
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      POST_QUEUE_NAME: post_events
+      PUSH_NOTIFICATOR_URL: http://push-notificator:8000/api/v1/notify
+      PUSH_NOTIFICATION_TOKEN: ${PUSH_NOTIFICATION_TOKEN:-demo-token}
+      WAIT_FOR_HOST: rabbitmq
+      WAIT_FOR_PORT: "5672"
+      WAIT_FOR_RETRIES: "40"
+      WAIT_FOR_DELAY: "2"
+    depends_on:
+      - rabbitmq
+      - push-notificator
     networks:
       - app-network
 
