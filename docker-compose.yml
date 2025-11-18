@@ -11,6 +11,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   push-notificator:
     image: ghcr.io/ayusavin/push-notification-playground:1.0.0
@@ -96,18 +97,18 @@ services:
 
   worker:
     build: ./worker
+    env_file:
+      - .env
     environment:
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-      POST_QUEUE_NAME: post_events
-      PUSH_NOTIFICATOR_URL: http://push-notificator:8000/api/v1/notify
-      PUSH_NOTIFICATION_TOKEN: ${PUSH_NOTIFICATION_TOKEN:-demo-token}
       WAIT_FOR_HOST: rabbitmq
       WAIT_FOR_PORT: "5672"
       WAIT_FOR_RETRIES: "40"
       WAIT_FOR_DELAY: "2"
     depends_on:
-      - rabbitmq
-      - push-notificator
+      rabbitmq:
+        condition: service_healthy
+      push-notificator:
+        condition: service_started
     networks:
       - app-network
 
