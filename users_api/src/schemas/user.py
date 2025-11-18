@@ -12,6 +12,7 @@ class UserBase(BaseModel):
     email: EmailStr
     bio: Optional[str] = Field(None, max_length=500)
     image_url: Optional[str] = Field(None, max_length=500)
+    subscription_key: Optional[str] = None
 
 
 class UserCreate(UserBase):
@@ -27,6 +28,19 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     bio: Optional[str] = Field(None, max_length=500)
     image_url: Optional[str] = Field(None, max_length=500)
+    subscription_key: Optional[str] = None
+
+
+class SubscriptionKeyUpdate(BaseModel):
+    """Обновление subscription_key"""
+
+    subscription_key: str = Field(..., min_length=1)
+
+
+class SubscribeRequest(BaseModel):
+    """Тело запроса на подписку"""
+
+    target_user_id: UUID
 
 
 class UserLogin(BaseModel):
