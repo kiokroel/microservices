@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.core.config import settings
 from src.core.database import engine
 from src.routes import router
+from src.services import close_queue, init_queue
 
 # Инициализировать приложение
 app = FastAPI(
@@ -29,6 +30,16 @@ app.add_middleware(
 
 # Роуты
 app.include_router(router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    await init_queue()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await close_queue()
 
 
 @app.get("/health")

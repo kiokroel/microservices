@@ -56,10 +56,26 @@ class APISettings(BaseSettings):
 
 
 
+class QueueSettings(BaseSettings):
+    """Queue (RabbitMQ) configuration"""
+
+    rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672/"
+    post_queue_name: str = "post_events"
+
+    model_config = SettingsConfigDict(
+        env_file=env_file_path,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+        env_prefix="BACKEND_QUEUE_",
+    )
+
+
 class Settings(BaseSettings):
     env: str = "development"
     database_settings: DatabaseSettings = DatabaseSettings()
     api_settings: APISettings = APISettings()
+    queue_settings: QueueSettings = QueueSettings()
 
 
     @property

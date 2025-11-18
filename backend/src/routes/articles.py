@@ -7,6 +7,7 @@ from src.controllers.article import ArticleController
 from src.core.database import get_db
 from src.dependencies import get_current_user
 from src.schemas.article import ArticleBase, ArticleResponse, ArticleUpdate
+from src.services import enqueue_post_created
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
 
@@ -19,7 +20,9 @@ async def create_article(
 ):
     """Создать новую статью"""
     controller = ArticleController(db)
-    return await controller.create_article(article_in, current_user["id"])
+    article = await controller.create_article(article_in, current_user["id"])
+    await enqueue_post_created(current_user["id"], article.id)
+    return article
 
 
 @router.get("/", response_model=List[ArticleResponse])
