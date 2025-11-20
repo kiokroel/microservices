@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672/"
     post_queue_name: str = "post_events"
     push_notificator_url: str = "http://push-notificator:8000/api/v1/notify"
+    worker_concurrency: int = 10
 
     backend_api_settings: BackendAPISettings = BackendAPISettings()
     users_api_settings: UsersAPISettings = UsersAPISettings()

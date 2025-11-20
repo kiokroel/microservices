@@ -71,6 +71,61 @@ async def send_push_with_retry(
     )
 
 
+async def process_notification(
+    *,
+    semaphore: asyncio.Semaphore,
+    client: httpx.AsyncClient,
+    subscriber_id: UUID,
+    author_id: UUID,
+    article_id: UUID,
+    msg_text: str,
+    subscription_key: str,
+    job_id: str | None,
+) -> None:
+    job_label = job_id or ""
+
+    async with semaphore:
+        async for worker_session in get_worker_db():
+            notification_repo = NotificationRepository(worker_session)
+
+            already_sent = await notification_repo.was_sent(
+                subscriber_id=subscriber_id,
+                post_id=article_id,
+            )
+            if already_sent:
+                logger.info(
+                    "job_id=%s author_id=%s subscriber_id=%s: push уже был отправлен, пропускаем",
+                    job_label,
+                    author_id,
+                    subscriber_id,
+                )
+                return
+
+            try:
+                await send_push_with_retry(
+                    client,
+                    subscriber_id=subscriber_id,
+                    author_id=author_id,
+                    msg_text=msg_text,
+                    subscription_key=subscription_key,
+                    job_id=job_label,
+                )
+                await notification_repo.mark_sent(
+                    subscriber_id=subscriber_id,
+                    post_id=article_id,
+                )
+            except Exception as exc:
+                logger.exception(
+                    "job_id=%s author_id=%s subscriber_id=%s: "
+                    "ошибка при отправке уведомления: %s",
+                    job_label,
+                    author_id,
+                    subscriber_id,
+                    exc,
+                )
+            return
+
+
 async def handle_message(message: aio_pika.IncomingMessage) -> None:
     async with message.process(requeue=True):
         job_id = getattr(message, "message_id", None)
@@ -128,57 +183,39 @@ async def handle_message(message: aio_pika.IncomingMessage) -> None:
             logger.info("job_id=%s: нет подписчиков для автора %s", job_id, author_id)
             return
 
-        async for worker_session in get_worker_db():
-            notification_repo = NotificationRepository(worker_session)
-            async with httpx.AsyncClient() as client:
-                for subscriber_id in subscriber_ids:
-                    subscription_key = subs_keys.get(subscriber_id)
-                    if not subscription_key:
-                        logger.warning(
-                            "job_id=%s author_id=%s subscriber_id=%s: нет subscription_key",
-                            job_id,
-                            author_id,
-                            subscriber_id,
-                        )
-                        continue
+        concurrency = max(settings.worker_concurrency, 1)
+        semaphore = asyncio.Semaphore(concurrency)
+        tasks = []
 
-                    already_sent = await notification_repo.was_sent(
-                        subscriber_id=subscriber_id,
-                        post_id=article_id,
+        async with httpx.AsyncClient() as client:
+            for subscriber_id in subscriber_ids:
+                subscription_key = subs_keys.get(subscriber_id)
+                if not subscription_key:
+                    logger.warning(
+                        "job_id=%s author_id=%s subscriber_id=%s: нет subscription_key",
+                        job_id,
+                        author_id,
+                        subscriber_id,
                     )
-                    if already_sent:
-                        logger.info(
-                            "job_id=%s author_id=%s subscriber_id=%s: push уже был отправлен, пропускаем",
-                            job_id,
-                            author_id,
-                            subscriber_id,
-                        )
-                        continue
+                    continue
 
-                    try:
-                        await send_push_with_retry(
-                            client,
+                tasks.append(
+                    asyncio.create_task(
+                        process_notification(
+                            semaphore=semaphore,
+                            client=client,
                             subscriber_id=subscriber_id,
                             author_id=author_id,
+                            article_id=article_id,
                             msg_text=msg_text,
                             subscription_key=subscription_key,
                             job_id=str(job_id) if job_id is not None else "",
                         )
-                        await notification_repo.mark_sent(
-                            subscriber_id=subscriber_id,
-                            post_id=article_id,
-                        )
-                    except Exception as exc:
-                        logger.exception(
-                            "job_id=%s author_id=%s subscriber_id=%s: "
-                            "ошибка при отправке уведомления: %s",
-                            job_id,
-                            author_id,
-                            subscriber_id,
-                            exc,
-                        )
-                        continue
-            break
+                    )
+                )
+
+            if tasks:
+                await asyncio.gather(*tasks)
 
 
 async def main() -> None:
