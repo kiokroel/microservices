@@ -63,6 +63,27 @@ services:
       - app-network
     profiles:
       - dev
+  
+  db_worker:
+    image: postgres:15-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5435:5432"
+    volumes:
+      - db_worker_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WORKER_POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+    profiles:
+      - dev
 
   backend:
     build: ./backend
@@ -109,6 +130,8 @@ services:
         condition: service_healthy
       push-notificator:
         condition: service_started
+      db_worker:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -128,7 +151,8 @@ services:
 volumes:
   db_main_data:
   db_users_data:
-
+  db_worker_data:
+  
 networks:
   app-network:
     driver: bridge

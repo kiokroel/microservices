@@ -3,17 +3,18 @@ import json
 import logging
 import os
 from typing import Any, Dict
+from uuid import UUID
 
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-import httpx
 import aio_pika
-from pydantic import BaseModel, ValidationError, Field
-from sqlalchemy.ext.asyncio import AsyncSession
+import httpx
+from pydantic import BaseModel, ValidationError
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from src.core.config import settings
-from src.core.database import get_users_db, get_backend_db
-from src.repositories.user_repository import UserRepository
+from src.core.database import get_backend_db, get_users_db, get_worker_db
 from src.repositories.article_repository import ArticleRepository
+from src.repositories.notification_repository import NotificationRepository
+from src.repositories.user_repository import UserRepository
 
 
 logging.basicConfig(
@@ -24,8 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 class ArticlePublishedEvent(BaseModel):
-    author_id: int = Field(..., gt=0)
-    post_id: int = Field(..., gt=0)
+    author_id: UUID
+    post_id: UUID
 
 
 NETWORK_EXCEPTIONS = (
@@ -44,8 +45,8 @@ NETWORK_EXCEPTIONS = (
 async def send_push_with_retry(
     client: httpx.AsyncClient,
     *,
-    subscriber_id: int,
-    author_id: int,
+    subscriber_id: UUID,
+    author_id: UUID,
     msg_text: str,
     subscription_key: str,
     job_id: str | None,
@@ -127,37 +128,57 @@ async def handle_message(message: aio_pika.IncomingMessage) -> None:
             logger.info("job_id=%s: нет подписчиков для автора %s", job_id, author_id)
             return
 
-        async with httpx.AsyncClient() as client:
-            for subscriber_id in subscriber_ids:
-                subscription_key = subs_keys.get(subscriber_id)
-                if not subscription_key:
-                    logger.warning(
-                        "job_id=%s author_id=%s subscriber_id=%s: нет subscription_key",
-                        job_id,
-                        author_id,
-                        subscriber_id,
-                    )
-                    continue
+        async for worker_session in get_worker_db():
+            notification_repo = NotificationRepository(worker_session)
+            async with httpx.AsyncClient() as client:
+                for subscriber_id in subscriber_ids:
+                    subscription_key = subs_keys.get(subscriber_id)
+                    if not subscription_key:
+                        logger.warning(
+                            "job_id=%s author_id=%s subscriber_id=%s: нет subscription_key",
+                            job_id,
+                            author_id,
+                            subscriber_id,
+                        )
+                        continue
 
-                try:
-                    await send_push_with_retry(
-                        client,
+                    already_sent = await notification_repo.was_sent(
                         subscriber_id=subscriber_id,
-                        author_id=author_id,
-                        msg_text=msg_text,
-                        subscription_key=subscription_key,
-                        job_id=str(job_id) if job_id is not None else "",
+                        post_id=article_id,
                     )
-                except Exception as exc:
-                    logger.exception(
-                        "job_id=%s author_id=%s subscriber_id=%s: "
-                        "ошибка при отправке уведомления: %s",
-                        job_id,
-                        author_id,
-                        subscriber_id,
-                        exc,
-                    )
-                    continue
+                    if already_sent:
+                        logger.info(
+                            "job_id=%s author_id=%s subscriber_id=%s: push уже был отправлен, пропускаем",
+                            job_id,
+                            author_id,
+                            subscriber_id,
+                        )
+                        continue
+
+                    try:
+                        await send_push_with_retry(
+                            client,
+                            subscriber_id=subscriber_id,
+                            author_id=author_id,
+                            msg_text=msg_text,
+                            subscription_key=subscription_key,
+                            job_id=str(job_id) if job_id is not None else "",
+                        )
+                        await notification_repo.mark_sent(
+                            subscriber_id=subscriber_id,
+                            post_id=article_id,
+                        )
+                    except Exception as exc:
+                        logger.exception(
+                            "job_id=%s author_id=%s subscriber_id=%s: "
+                            "ошибка при отправке уведомления: %s",
+                            job_id,
+                            author_id,
+                            subscriber_id,
+                            exc,
+                        )
+                        continue
+            break
 
 
 async def main() -> None:

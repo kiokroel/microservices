@@ -11,6 +11,6 @@ RUN poetry config virtualenvs.create false
 COPY . .
 RUN poetry install --no-interaction --no-ansi
 
-EXPOSE 8000
+ENV PYTHONPATH=/app/src
 
-CMD ["python", "-m", "src.main"]
+CMD ["sh", "-c", "alembic upgrade head && python -m src.main"]
