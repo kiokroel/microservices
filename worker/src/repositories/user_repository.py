@@ -1,12 +1,13 @@
+from typing import Dict, List
 from uuid import UUID
-from typing import List, Dict
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.models.subscriber import Subscriber
 from src.models.user import User
 
 class UserRepository:
-    @staticmethod
     async def get_subscribers_by_author_id(session: AsyncSession, author_id: UUID) -> List[UUID]:
         stmt = select(Subscriber.subscriber_id).where(Subscriber.author_id == author_id)
         result = await session.execute(stmt)

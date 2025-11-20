@@ -41,6 +41,17 @@ class UsersAPISettings(DatabaseSettings):
     )
 
 
+class WorkerDBSettings(DatabaseSettings):
+
+    model_config = SettingsConfigDict(
+        env_file=env_file_path,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+        env_prefix="WORKER_",
+    )
+
+
 class Settings(BaseSettings):
     rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672/"
     post_queue_name: str = "post_events"
@@ -48,6 +59,7 @@ class Settings(BaseSettings):
 
     backend_api_settings: BackendAPISettings = BackendAPISettings()
     users_api_settings: UsersAPISettings = UsersAPISettings()
+    worker_db_settings: WorkerDBSettings = WorkerDBSettings()
 
 settings = Settings()
 
@@ -56,7 +68,3 @@ logging.basicConfig(
     format="[%(asctime)s] [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-logger.info(settings.backend_api_settings.database_url)
-logger.info(settings.users_api_settings.database_url)
-logger.info(settings.model_dump())
