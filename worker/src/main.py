@@ -7,6 +7,7 @@ from typing import Any, Dict
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import httpx
 import aio_pika
+from pydantic import BaseModel, ValidationError, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
@@ -14,11 +15,18 @@ from src.core.database import get_users_db, get_backend_db
 from src.repositories.user_repository import UserRepository
 from src.repositories.article_repository import ArticleRepository
 
+
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
     format="[%(asctime)s] [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+class ArticlePublishedEvent(BaseModel):
+    author_id: int = Field(..., gt=0)
+    post_id: int = Field(..., gt=0)
+
 
 NETWORK_EXCEPTIONS = (
     httpx.TimeoutException,
@@ -66,12 +74,38 @@ async def handle_message(message: aio_pika.IncomingMessage) -> None:
     async with message.process(requeue=True):
         job_id = getattr(message, "message_id", None)
 
-        payload: Dict[str, Any] = json.loads(message.body.decode("utf-8"))
-        logger.info("job_id=%s: получено событие из очереди: %s", job_id, payload)
+        try:
+            raw = message.body.decode("utf-8")
+            raw_payload: Dict[str, Any] = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            logger.error(
+                "job_id=%s: некорректный JSON, сообщение будет отклонено: %s",
+                job_id,
+                exc,
+            )
+            await message.reject(requeue=False)
+            return
 
-        author_id = payload.get("author_id")
-        article_id = payload.get("post_id")
+        try:
+            event = ArticlePublishedEvent.model_validate(raw_payload)
+        except ValidationError as exc:
+            logger.error(
+                "job_id=%s: невалидный payload, сообщение будет отклонено: %s",
+                job_id,
+                exc,
+            )
+            await message.reject(requeue=False)
+            return
 
+        author_id = event.author_id
+        article_id = event.post_id
+
+        logger.info(
+            "job_id=%s: валидное событие из очереди: author_id=%s post_id=%s",
+            job_id,
+            author_id,
+            article_id,
+        )
 
         # Получение списка подписчиков автора
         async for users_session in get_users_db():
